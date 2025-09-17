@@ -95,17 +95,17 @@ jobs:
       - name: Generate PKG-INFO
         run: |
           cat << _EOF_ > PKG-INFO
-Metadata-Version: 2.1
-Name: ${{ env.ARCHIVE_NAME }}
-Version: $BRANCH
-Author: $GITHUB_ACTOR
-Home-page: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/pull/$PRNUMBER
-Download-URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
-Summary: $PACKAGES
-Platform: ${{ matrix.arch }}
+          Metadata-Version: 2.1
+          Name: ${{ env.ARCHIVE_NAME }}
+          Version: $BRANCH
+          Author: $GITHUB_ACTOR
+          Home-page: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/pull/$PRNUMBER
+          Download-URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          Summary: $PACKAGES
+          Platform: ${{ matrix.arch }}
 
-Packages for ImmortalWrt $BRANCH running on ${{ matrix.arch }}, built from PR $PRNUMBER
-at commit $HEAD_ID, against $BRANCH at commit $BASE_ID, with merge SHA $MERGE_ID.
+          Packages for ImmortalWrt $BRANCH running on ${{ matrix.arch }}, built from PR $PRNUMBER
+          at commit $HEAD_ID, against $BRANCH at commit $BASE_ID, with merge SHA $MERGE_ID.
 
 Modified packages:
 _EOF_
