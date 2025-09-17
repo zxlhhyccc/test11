@@ -43,7 +43,8 @@ jobs:
           brew: true
           port: true
 
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -55,10 +56,9 @@ jobs:
 
       - name: Determine changed packages
         run: |
-          PACKAGES=""
           PKG_ROOTS=$(find . -name Makefile | grep -v ".*/src/Makefile" | sed -e 's@./\(.*\)/Makefile@\1/@')
           CHANGES=$(git diff --diff-filter=d --name-only origin/$BRANCH)
-
+          PACKAGES=""
           for ROOT in $PKG_ROOTS; do
             for CHANGE in $CHANGES; do
               if [[ "$CHANGE" == "$ROOT"* ]]; then
@@ -67,7 +67,6 @@ jobs:
               fi
             done
           done
-
           PACKAGES="${PACKAGES:-luci-app-ssr-plus}"
           echo "Building $PACKAGES"
           echo "PACKAGES=$PACKAGES" >> $GITHUB_ENV
@@ -80,23 +79,19 @@ jobs:
           V: s
 
       - name: Move created packages
-        run: |
-          mkdir -p artifacts/packages
-          cp bin/packages/${{ matrix.arch }}/packages_ci/*.ipk artifacts/packages/ 2>/dev/null || true
+        run: cp bin/packages/${{ matrix.arch }}/packages_ci/*.ipk . || true
 
       - name: Collect metadata
         run: |
           MERGE_ID=$(git rev-parse --short HEAD)
-          BASE_ID=$(git rev-parse --short HEAD^1)
-          HEAD_ID=$(git rev-parse --short HEAD)
-          PRNUMBER=${GITHUB_REF_NAME%/merge}
-          ARCHIVE_NAME=${{ matrix.arch }}-PR$PRNUMBER-$MERGE_ID
-
           echo "MERGE_ID=$MERGE_ID" >> $GITHUB_ENV
+          BASE_ID=$(git rev-parse --short HEAD^1)
+          HEAD_ID=$(git rev-parse --short HEAD^2)
+          PRNUMBER=${GITHUB_REF_NAME%/merge}
           echo "BASE_ID=$BASE_ID" >> $GITHUB_ENV
           echo "HEAD_ID=$HEAD_ID" >> $GITHUB_ENV
           echo "PRNUMBER=$PRNUMBER" >> $GITHUB_ENV
-          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
+          echo "ARCHIVE_NAME=${{ matrix.arch }}-PR$PRNUMBER-$MERGE_ID" >> $GITHUB_ENV
 
       - name: Generate PKG-INFO
         run: |
@@ -115,14 +110,12 @@ at commit $HEAD_ID, against $BRANCH at commit $BASE_ID, with merge SHA $MERGE_ID
 
 Modified packages:
 _EOF_
-
           for p in $PACKAGES; do
             echo "  $p" >> PKG-INFO
           done
-
           echo >> PKG-INFO
           echo "Full file listing:" >> PKG-INFO
-          ls -al artifacts/packages/*.ipk >> PKG-INFO || echo "No packages built" >> PKG-INFO
+          ls -al *.ipk >> PKG-INFO || true
           cat PKG-INFO
 
       - name: Store packages
@@ -130,7 +123,9 @@ _EOF_
         with:
           name: ${{ env.ARCHIVE_NAME }}-packages
           path: |
-            artifacts/packages/
+            Packages
+            Packages.*
+            *.ipk
             PKG-INFO
 
       - name: Store logs
