@@ -78,7 +78,6 @@ jobs:
           ARCH: ${{ matrix.arch }}
           FEEDNAME: packages_ci
           V: s
-        with:
           target: ${{ matrix.target }}
           packages: ${{ env.PACKAGES }}
 
