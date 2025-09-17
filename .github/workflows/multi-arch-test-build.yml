@@ -83,10 +83,10 @@ jobs:
       - name: Collect metadata
         run: |
           MERGE_ID=$(git rev-parse --short HEAD)
-          echo "MERGE_ID=$MERGE_ID" >> $GITHUB_ENV
           BASE_ID=$(git rev-parse --short HEAD^1)
           HEAD_ID=$(git rev-parse --short HEAD^2)
           PRNUMBER=${GITHUB_REF_NAME%/merge}
+          echo "MERGE_ID=$MERGE_ID" >> $GITHUB_ENV
           echo "BASE_ID=$BASE_ID" >> $GITHUB_ENV
           echo "HEAD_ID=$HEAD_ID" >> $GITHUB_ENV
           echo "PRNUMBER=$PRNUMBER" >> $GITHUB_ENV
