@@ -43,9 +43,6 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-          apt: true
-          brew: true
-          port: true
 
       - uses: actions/checkout@v3
         with:
@@ -53,27 +50,16 @@ jobs:
 
       - name: Determine branch name
         run: |
-          if [ -n "$GITHUB_BASE_REF" ]; then
-            BRANCH="$GITHUB_BASE_REF"
-          else
-            BRANCH="$GITHUB_REF_NAME"
-          fi
+          BRANCH="${GITHUB_BASE_REF#refs/heads/}"
           echo "Building for $BRANCH"
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
 
       - name: Determine changed packages
         run: |
           PKG_ROOTS=$(find . -name Makefile | grep -v ".*/src/Makefile" | sed -e 's@./\(.*\)/Makefile@\1/@')
+          BASE_REF="${GITHUB_BASE_REF:-HEAD^}"
+          CHANGES=$(git diff --diff-filter=d --name-only $BASE_REF)
           PACKAGES=""
-
-          # 安全处理 diff base
-          if git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
-            DIFF_BASE="origin/$BRANCH"
-          else
-            DIFF_BASE="HEAD^"
-          fi
-          CHANGES=$(git diff --diff-filter=d --name-only $DIFF_BASE)
-
           for ROOT in $PKG_ROOTS; do
             for CHANGE in $CHANGES; do
               if [[ "$CHANGE" == "$ROOT"* ]]; then
@@ -82,7 +68,6 @@ jobs:
               fi
             done
           done
-
           PACKAGES="${PACKAGES:-luci-app-ssr-plus}"
           echo "Building $PACKAGES"
           echo "PACKAGES=$PACKAGES" >> $GITHUB_ENV
@@ -93,6 +78,9 @@ jobs:
           ARCH: ${{ matrix.arch }}
           FEEDNAME: packages_ci
           V: s
+        with:
+          target: ${{ matrix.target }}
+          packages: ${{ env.PACKAGES }}
 
       - name: Move created packages
         run: cp bin/packages/${{ matrix.arch }}/packages_ci/*.ipk . || true
@@ -101,7 +89,7 @@ jobs:
         run: |
           MERGE_ID=$(git rev-parse --short HEAD)
           BASE_ID=$(git rev-parse --short HEAD^1 || echo unknown)
-          HEAD_ID=$(git rev-parse --short HEAD || echo unknown)
+          HEAD_ID=$(git rev-parse --short HEAD^2 || echo unknown)
           PRNUMBER=${GITHUB_REF_NAME%/merge}
           echo "MERGE_ID=$MERGE_ID" >> $GITHUB_ENV
           echo "BASE_ID=$BASE_ID" >> $GITHUB_ENV
@@ -111,6 +99,9 @@ jobs:
 
       - name: Generate PKG-INFO
         run: |
+          shopt -s nullglob
+          IPKS=( *.ipk )
+          
           cat << _EOF_ > PKG-INFO
           Metadata-Version: 2.1
           Name: ${{ env.ARCHIVE_NAME }}
@@ -129,9 +120,18 @@ jobs:
           for p in $PACKAGES; do
             echo "  $p" >> PKG-INFO
           done
+
           echo >> PKG-INFO
-          echo "Full file listing:" >> PKG-INFO
-          ls -al *.ipk >> PKG-INFO || true
+          echo "Package count: ${#IPKS[@]}" >> PKG-INFO
+          echo "Package size summary:" >> PKG-INFO
+          for f in "${IPKS[@]}"; do
+            du -sh "$f" >> PKG-INFO
+          done
+
+          if [ ${#IPKS[@]} -eq 0 ]; then
+            echo "No packages built." >> PKG-INFO
+          fi
+
           cat PKG-INFO
 
       - name: Store packages
