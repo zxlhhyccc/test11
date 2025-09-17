@@ -43,8 +43,7 @@ jobs:
           brew: true
           port: true
 
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
