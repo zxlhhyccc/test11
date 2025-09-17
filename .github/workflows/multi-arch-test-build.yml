@@ -107,8 +107,8 @@ jobs:
           Packages for ImmortalWrt $BRANCH running on ${{ matrix.arch }}, built from PR $PRNUMBER
           at commit $HEAD_ID, against $BRANCH at commit $BASE_ID, with merge SHA $MERGE_ID.
 
-Modified packages:
-_EOF_
+          Modified packages:
+          _EOF_
           for p in $PACKAGES; do
             echo "  $p" >> PKG-INFO
           done
