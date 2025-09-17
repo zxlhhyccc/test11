@@ -53,15 +53,27 @@ jobs:
 
       - name: Determine branch name
         run: |
-          BRANCH="${GITHUB_BASE_REF#refs/heads/}"
+          if [ -n "$GITHUB_BASE_REF" ]; then
+            BRANCH="$GITHUB_BASE_REF"
+          else
+            BRANCH="$GITHUB_REF_NAME"
+          fi
           echo "Building for $BRANCH"
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
 
       - name: Determine changed packages
         run: |
           PKG_ROOTS=$(find . -name Makefile | grep -v ".*/src/Makefile" | sed -e 's@./\(.*\)/Makefile@\1/@')
-          CHANGES=$(git diff --diff-filter=d --name-only origin/$BRANCH)
           PACKAGES=""
+
+          # 安全处理 diff base
+          if git show-ref --verify --quiet refs/remotes/origin/$BRANCH; then
+            DIFF_BASE="origin/$BRANCH"
+          else
+            DIFF_BASE="HEAD^"
+          fi
+          CHANGES=$(git diff --diff-filter=d --name-only $DIFF_BASE)
+
           for ROOT in $PKG_ROOTS; do
             for CHANGE in $CHANGES; do
               if [[ "$CHANGE" == "$ROOT"* ]]; then
@@ -70,6 +82,7 @@ jobs:
               fi
             done
           done
+
           PACKAGES="${PACKAGES:-luci-app-ssr-plus}"
           echo "Building $PACKAGES"
           echo "PACKAGES=$PACKAGES" >> $GITHUB_ENV
@@ -87,8 +100,8 @@ jobs:
       - name: Collect metadata
         run: |
           MERGE_ID=$(git rev-parse --short HEAD)
-          BASE_ID=$(git rev-parse --short HEAD^1)
-          HEAD_ID=$(git rev-parse --short HEAD^2)
+          BASE_ID=$(git rev-parse --short HEAD^1 || echo unknown)
+          HEAD_ID=$(git rev-parse --short HEAD || echo unknown)
           PRNUMBER=${GITHUB_REF_NAME%/merge}
           echo "MERGE_ID=$MERGE_ID" >> $GITHUB_ENV
           echo "BASE_ID=$BASE_ID" >> $GITHUB_ENV
