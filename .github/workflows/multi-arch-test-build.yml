@@ -47,6 +47,9 @@ jobs:
 
           - arch: x86_64
             target: x86-64
+      # 如果手动触发且指定了 arch，只保留匹配的 job
+      max-parallel: 1
+      exclude: ${{ github.event_name == 'workflow_dispatch' && inputs.arch != '' && fromJSON('[' + join(',',[for i in strategy.matrix.include: '"' + i.arch + '"']) + ']') | join(',') != inputs.arch }}
 
     steps:
       - name: Free Disk Space
